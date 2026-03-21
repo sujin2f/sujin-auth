@@ -1,0 +1,14 @@
+**/.build
+**/.jest
+**/.vscode
+**/coverage
+**/node_modules
+**/temp
+
+.dockerignore
+Dockerfile
+docker-compose.yml
+.env
+.env.example
+
+**/**.spec.ts
