@@ -5,6 +5,7 @@ import cors from 'cors'
 import { Logger } from '@common/model/Logger'
 /* Utils */
 import { googleRoutes } from '@src/routers/google'
+import { refreshRoutes } from '@src/routers/refresh'
 import { sessionOption } from '@src/session'
 
 const allowedOrigins = JSON.parse(`${process.env.AUTH_CORS_ORIGINS}`)
@@ -31,6 +32,7 @@ app.use(
     }),
 )
 app.use('/', googleRoutes)
+app.use('/refresh', refreshRoutes)
 
 // Start the server
 const port = process.env.AUTH_SERVER_PORT
