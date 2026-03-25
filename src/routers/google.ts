@@ -1,10 +1,13 @@
 import express from 'express'
+import axios from 'axios'
 /* Models */
 import { Logger } from '@common/model/Logger'
 /* Utils */
-import { gqlLogin } from '@src/utils'
-import { fetchGoogleUser } from '@src/routers/google/utils'
 import { getTokenSub, generateToken } from '@common/utils/token'
+/* T_Types */
+import type { T_GoogleUser } from '@common/types'
+/* CONSTANTS */
+import { HEADER_TOKEN } from '@common/constants'
 
 declare module 'express-session' {
     interface SessionData {
@@ -18,9 +21,53 @@ const INTER_COM_SECRET = `${process.env.INTER_COM_SECRET}`
 const CRYPTO_KEY = `${process.env.CRYPTO_KEY}`
 
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID
+const CLIENT_SECRET = `${process.env.GOOGLE_CLIENT_SECRET}`
 const REDIRECT_URI = `${process.env.GOOGLE_REDIRECT_URI}`
 const OAUTH_URL = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code&scope=profile email`
 const allowed = JSON.parse(`${process.env.AUTH_CORS_ORIGINS}`)
+
+const fetchGoogleUser = async (code: string): Promise<T_GoogleUser> => {
+    let profile
+    try {
+        // Exchange authorization code for access token
+        const {
+            data: { access_token },
+        } = await axios.post('https://oauth2.googleapis.com/token', {
+            client_id: CLIENT_ID,
+            client_secret: CLIENT_SECRET,
+            code,
+            redirect_uri: REDIRECT_URI,
+            grant_type: 'authorization_code',
+        })
+
+        // Use access_token or id_token to fetch user profile
+        const data = await axios.get('https://www.googleapis.com/oauth2/v1/userinfo', {
+            headers: { Authorization: `Bearer ${access_token}` },
+        })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        profile = (data as any).data
+    } catch (e) {
+        Logger.error('🤬 Fetching Google token has been failed: ', JSON.stringify(e))
+        throw new Error('🤬 Fetching Google token has been failed')
+    }
+    return profile
+}
+
+const gqlLogin = async (user: T_GoogleUser): Promise<string> => {
+    const endpoint = `${process.env.GQL_BASE_URL}`
+
+    const query = `
+        mutation {
+            login(email: "${user.email}", name: "${user.name}", picture: "${user.picture}")
+        }`
+
+    const token = await generateToken(user, 10, INTER_COM_SECRET, CRYPTO_KEY)
+    return await axios
+        .post(endpoint, { query: query }, { headers: { Authorization: `Bearer ${token}` } })
+        .then((response) => {
+            return response.headers[HEADER_TOKEN].slice(7)
+        })
+}
 
 routes.get('/google/auth', async (req, res) => {
     Logger.info(`🤞 Start user authentication`)
