@@ -7,6 +7,9 @@ import { subtle, getRandomValues } from 'node:crypto'
 import util from 'util'
 const execPromise = util.promisify(exec)
 
+// Update submodule
+await execPromise(`git submodule update --remote`)
+
 // Version & sudo
 const VERSION = process.env.npm_package_version
 const sudo = process.argv.indexOf('sudo') !== -1 ? 'sudo ' : ''
