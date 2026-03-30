@@ -11,4 +11,4 @@ docker-compose.yml
 .env
 .env.example
 
-**/**.spec.ts
+**/*.spec.ts
