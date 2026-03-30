@@ -2,6 +2,10 @@ import express from 'express'
 import axios from 'axios'
 /* CONSTANTS */
 import { HEADER_TOKEN } from '@common/constants'
+/* Models */
+import { Logger } from '@common/model/Logger'
+/* Utils */
+import { createAuthHeader } from '@common/utils/token'
 
 declare module 'express-session' {
     interface SessionData {
@@ -20,12 +24,12 @@ const gqlRefresh = async (token: string): Promise<string> => {
         }`
 
     return await axios
-        .post(endpoint, { query: query }, { headers: { Authorization: `Bearer ${token}` } })
+        .post(endpoint, { query: query }, createAuthHeader(token.slice(7)))
         .then((response) => response.headers[HEADER_TOKEN].slice(7))
 }
 
 routes.get('/', async (req, res) => {
-    if (!req.headers.authorization) throw new Error()
+    if (!req.headers.authorization) throw Logger.throw('/refresh called with empty auth header')
     const token = await gqlRefresh(`${req.headers.authorization}`)
     res.send(token)
 })
